@@ -12,11 +12,15 @@
   "scripts": {
     "build": "bun build --target=node ./src/index.ts --outfile=dist/index.js && bun run build:declaration",
     "build:declaration": "tsc --emitDeclarationOnly --project tsconfig.types.json",
-    "postbuild": "rimraf tsconfig.types.tsbuildinfo"
+    "postbuild": "rimraf tsconfig.types.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "rimraf": "^6.0.1"
+    "@types/node": "^20.0.0",
+    "rimraf": "^6.0.1",
+    "vitest": "^1.0.0"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
