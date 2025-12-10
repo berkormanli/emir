@@ -91,10 +91,38 @@ export class Window extends Box {
     }
 
     /**
+     * Get window title
+     */
+    getTitle(): string {
+        return this.windowOptions.title || '';
+    }
+
+    /**
+     * Set window title
+     */
+    setTitle(title: string): void {
+        this.windowOptions.title = title;
+    }
+
+    /**
+     * Check if window is shown (visible)
+     */
+    isShown(): boolean {
+        return this.visible && this.windowState !== 'closed' && this.windowState !== 'minimized';
+    }
+
+    /**
      * Get window state
      */
     getWindowState(): WindowState {
         return this.windowState;
+    }
+
+    /**
+     * Get window state (alias for getWindowState)
+     */
+    getState(): WindowState {
+        return this.getWindowState();
     }
 
     /**

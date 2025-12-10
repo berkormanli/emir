@@ -1,0 +1,187 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benchmark Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .timestamp {
+            color: #666;
+            margin-bottom: 40px;
+        }
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .summary-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .summary-card h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .summary-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #007acc;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .chart-container {
+            margin-bottom: 40px;
+            height: 400px;
+        }
+        .better { color: #28a745; }
+        .worse { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Performance Benchmark Report</h1>
+        <div class="timestamp">Generated on 2025-12-10T19:12:47.838Z</div>
+
+        <div class="summary">
+            <div class="summary-card">
+                <h3>Total Benchmarks</h3>
+                <div class="value">1</div>
+            </div>
+            <div class="summary-card">
+                <h3>Total Operations</h3>
+                <div class="value">500</div>
+            </div>
+            <div class="summary-card">
+                <h3>Avg Ops/sec</h3>
+                <div class="value">24</div>
+            </div>
+            <div class="summary-card">
+                <h3>Total Time</h3>
+                <div class="value">21.16s</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="opsChart"></canvas>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="memoryChart"></canvas>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Benchmark</th>
+                    <th>Duration (ms)</th>
+                    <th>Operations</th>
+                    <th>Ops/sec</th>
+                    <th>Memory (MB)</th>
+                    <th>Samples</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+                    <tr>
+                        <td>CLI Startup</td>
+                        <td>21163.63</td>
+                        <td>500</td>
+                        <td class="worse">24</td>
+                        <td>3.53</td>
+                        <td>10</td>
+                    </tr>
+                
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Ops/sec chart
+        new Chart(document.getElementById('opsChart'), {
+            type: 'bar',
+            data: {
+                labels: ["CLI Startup"],
+                datasets: [{
+                    label: 'Operations per Second',
+                    data: [23.625438424271685],
+                    backgroundColor: '#007acc'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Ops/sec'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Memory chart
+        new Chart(document.getElementById('memoryChart'), {
+            type: 'bar',
+            data: {
+                labels: ["CLI Startup"],
+                datasets: [{
+                    label: 'Memory Delta (MB)',
+                    data: [3.5283584594726562],
+                    backgroundColor: '#28a745'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Memory (MB)'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
