@@ -1,0 +1,41 @@
+{
+  "entryPoints": ["src/index.ts"],
+  "out": "docs",
+  "theme": "default",
+  "name": "Emir CLI Framework",
+  "includeVersion": true,
+  "excludePrivate": true,
+  "excludeProtected": false,
+  "disableSources": false,
+  "sourceLinkTemplate": "https://github.com/your-org/emir/blob/{gitRevision}/{path}#L{line}",
+  "gitRevision": "main",
+  "readme": "README.md",
+  "sort": ["source-order", "alphabetical"],
+  "categorizeByGroup": true,
+  "defaultCategory": "Other",
+  "categoryOrder": [
+    "Core",
+    "CLI",
+    "TUI",
+    "Components",
+    "Runtime",
+    "Scaffolding",
+    "*"
+  ],
+  "plugin": [
+    "typedoc-plugin-markdown",
+    "typedoc-plugin-mermaid"
+  ],
+  "watch": false,
+  "commentStyle": "jsdoc",
+  "logLevel": "Info",
+  "excludeExternals": true,
+  "excludeNotDocumented": false,
+  "excludeNotDocumentedKinds": [
+    "Class",
+    "Interface",
+    "Type alias"
+  ],
+  "searchInComments": true,
+  "cleanOutputDir": true
+}
