@@ -1,8 +1,21 @@
 import { Box, BoxOptions } from './box';
-import { BaseComponent } from './base-component';
 import { Position, Size, InputEvent } from './types';
-import { ThemeManager } from './theme';
-import { AnsiUtils } from './ansi-utils';
+
+type WindowControl = 'minimize' | 'maximize' | 'close';
+
+interface NormalizedMouseEvent {
+    x: number;
+    y: number;
+    action: 'press' | 'release' | 'drag';
+    button?: 'left' | 'right' | 'middle';
+}
+
+const isPositionLike = (value?: Position | Size): value is Position =>
+    !!value && typeof value.x === 'number' && typeof value.y === 'number';
+
+const isSizeLike = (value?: Position | Size): value is Size =>
+    !!value && typeof value.width === 'number' && typeof value.height === 'number' &&
+    (typeof (value as Position).x !== 'number' || typeof (value as Position).y !== 'number');
 
 /**
  * Window state
@@ -13,12 +26,13 @@ export type WindowState = 'normal' | 'minimized' | 'maximized' | 'closed';
  * Window options
  */
 export interface WindowOptions extends BoxOptions {
-    title: string;
+    title?: string;
     closable?: boolean;
     minimizable?: boolean;
     maximizable?: boolean;
     resizable?: boolean;
     draggable?: boolean;
+    movable?: boolean;
     modal?: boolean;
     alwaysOnTop?: boolean;
     minWidth?: number;
@@ -49,34 +63,60 @@ export class Window extends Box {
     protected originalSize: Size;
     protected savedPosition: Position | null;
     protected savedSize: Size | null;
-    private titleBarHeight: number = 1;
 
     constructor(
         id: string,
-        options: WindowOptions,
-        position?: Position,
-        size?: Size
+        options: WindowOptions = {},
+        positionOrSize?: Position | Size,
+        sizeOverride?: Size
     ) {
-        // Ensure window has a border and title
+        const {
+            title = '',
+            movable,
+            draggable,
+            ...otherOptions
+        } = options;
+
+        let initialPosition: Position | undefined;
+        let initialSize: Size | undefined = sizeOverride;
+
+        if (isPositionLike(positionOrSize)) {
+            initialPosition = positionOrSize;
+        } else if (!initialSize && isSizeLike(positionOrSize)) {
+            initialSize = positionOrSize;
+        }
+
+        if (!initialSize) {
+            initialSize = { width: 40, height: 20 };
+        }
+
+        const resolvedDraggable = movable ?? draggable ?? true;
+
+        // Ensure window always has a border managed by Window itself
         const boxOptions: BoxOptions = {
-            ...options,
+            ...otherOptions,
             border: true,
-            borderStyle: options.borderStyle || 'single'
+            borderStyle: otherOptions.borderStyle || 'single'
         };
         
-        super(id, boxOptions, position, size);
+        super(id, boxOptions, initialPosition, initialSize);
         
         this.windowOptions = {
+            title,
             closable: true,
             minimizable: true,
             maximizable: true,
             resizable: true,
-            draggable: true,
+            draggable: resolvedDraggable,
+            movable: resolvedDraggable,
             modal: false,
             alwaysOnTop: false,
-            minWidth: 20,
+            minWidth: 10,
             minHeight: 5,
-            ...options
+            ...otherOptions,
+            title,
+            draggable: resolvedDraggable,
+            movable: resolvedDraggable
         };
         
         this.windowState = 'normal';
@@ -102,6 +142,7 @@ export class Window extends Box {
      */
     setTitle(title: string): void {
         this.windowOptions.title = title;
+        this.markDirty();
     }
 
     /**
@@ -129,9 +170,6 @@ export class Window extends Box {
      * Set window state
      */
     setWindowState(state: WindowState): void {
-        const previousState = this.windowState;
-        this.windowState = state;
-        
         switch (state) {
             case 'minimized':
                 this.minimize();
@@ -189,6 +227,7 @@ export class Window extends Box {
             // For now, we'll use a large size
             this.setPosition({ x: 0, y: 0 });
             this.setSize({ width: 80, height: 24 }); // Default terminal size
+            this.setVisible(true);
             
             if (this.windowOptions.onMaximize) {
                 this.windowOptions.onMaximize();
@@ -207,6 +246,8 @@ export class Window extends Box {
             if (this.savedSize) {
                 this.setSize(this.savedSize);
             }
+            this.savedPosition = null;
+            this.savedSize = null;
             this.windowState = 'normal';
             this.setVisible(true);
             if (this.windowOptions.onRestore) {
@@ -331,8 +372,7 @@ export class Window extends Box {
         
         return relX >= 0 && 
                relX < this.size.width && 
-               relY >= 0 && 
-               relY < this.titleBarHeight + 2; // Include border
+               relY === 0;
     }
 
     /**
@@ -354,14 +394,8 @@ export class Window extends Box {
      */
     protected isInCloseButton(x: number, y: number): boolean {
         if (!this.windowOptions.closable) return false;
-        
-        const relX = x - this.position.x;
-        const relY = y - this.position.y;
-        
-        // Close button is typically at top-right
-        return relX >= this.size.width - 4 && 
-               relX < this.size.width - 1 &&
-               relY === 1; // Title bar row
+        const center = this.getControlCenter('close');
+        return center !== null && this.isInControlArea(center, x, y);
     }
 
     /**
@@ -369,17 +403,8 @@ export class Window extends Box {
      */
     protected isInMinimizeButton(x: number, y: number): boolean {
         if (!this.windowOptions.minimizable) return false;
-        
-        const relX = x - this.position.x;
-        const relY = y - this.position.y;
-        
-        // Minimize button is before maximize button
-        const offset = this.windowOptions.maximizable ? 6 : 4;
-        const closeOffset = this.windowOptions.closable ? 4 : 0;
-        
-        return relX >= this.size.width - offset - closeOffset && 
-               relX < this.size.width - offset - closeOffset + 2 &&
-               relY === 1;
+        const center = this.getControlCenter('minimize');
+        return center !== null && this.isInControlArea(center, x, y);
     }
 
     /**
@@ -387,101 +412,206 @@ export class Window extends Box {
      */
     protected isInMaximizeButton(x: number, y: number): boolean {
         if (!this.windowOptions.maximizable) return false;
-        
+        const center = this.getControlCenter('maximize');
+        return center !== null && this.isInControlArea(center, x, y);
+    }
+
+    private getControlOrder(): WindowControl[] {
+        const order: WindowControl[] = [];
+        if (this.windowOptions.minimizable) {
+            order.push('minimize');
+        }
+        if (this.windowOptions.maximizable) {
+            order.push('maximize');
+        }
+        if (this.windowOptions.closable) {
+            order.push('close');
+        }
+        return order;
+    }
+
+    private getControlCenter(control: WindowControl): number | null {
+        const order = this.getControlOrder();
+        const index = order.indexOf(control);
+        if (index === -1) {
+            return null;
+        }
+        const controlsToRight = order.length - index - 1;
+        return this.size.width - (2 * (controlsToRight + 1) + 1);
+    }
+
+    private isInControlArea(center: number, x: number, y: number): boolean {
         const relX = x - this.position.x;
         const relY = y - this.position.y;
-        
-        // Maximize button is before close button
-        const closeOffset = this.windowOptions.closable ? 4 : 0;
-        
-        return relX >= this.size.width - 4 - closeOffset && 
-               relX < this.size.width - 2 - closeOffset &&
-               relY === 1;
+        return relY === 0 && relX >= center - 1 && relX <= center + 1;
     }
 
     /**
      * Handle input events
      */
     handleInput(input: InputEvent): boolean {
-        // Don't handle input if window is not in normal state
-        if (this.windowState !== 'normal') {
-            return false;
-        }
-
         if (input.type === 'mouse') {
-            const { x, y, button, action } = input;
-            
-            if (!x || !y) return false;
-            
-            if (action === 'press' && button === 'left') {
-                // Check for window controls
-                if (this.isInCloseButton(x, y)) {
-                    this.close();
-                    return true;
-                } else if (this.isInMinimizeButton(x, y)) {
-                    this.minimize();
-                    return true;
-                } else if (this.isInMaximizeButton(x, y)) {
-                    this.maximize();
-                    return true;
-                } else if (this.isInResizeHandle(x, y)) {
-                    this.startResizing({ x, y });
-                    return true;
-                } else if (this.isInTitleBar(x, y)) {
-                    this.startDragging({ x, y });
-                    return true;
-                }
-            } else if (action === 'release') {
-                if (this.isDragging) {
-                    this.stopDragging();
-                    return true;
-                } else if (this.isResizing) {
-                    this.stopResizing();
-                    return true;
-                }
-            } else if (action === 'drag') {
-                if (this.isDragging) {
-                    this.updateDragPosition({ x, y });
-                    return true;
-                } else if (this.isResizing) {
-                    this.updateResize({ x, y });
-                    return true;
-                }
+            const mouse = this.normalizeMouseInput(input);
+            if (mouse && this.handleMouseInput(mouse)) {
+                return true;
             }
-        }
-
-        // Handle keyboard shortcuts
-        if (input.type === 'key' && this.state.focused) {
-            if (input.alt) {
-                switch (input.key) {
-                    case 'f4': // Alt+F4 to close
-                        if (this.windowOptions.closable) {
-                            this.close();
-                            return true;
-                        }
-                        break;
-                    case 'f9': // Alt+F9 to minimize
-                        if (this.windowOptions.minimizable) {
-                            this.minimize();
-                            return true;
-                        }
-                        break;
-                    case 'f10': // Alt+F10 to maximize
-                        if (this.windowOptions.maximizable) {
-                            if (this.windowState === 'maximized') {
-                                this.restore();
-                            } else {
-                                this.maximize();
-                            }
-                            return true;
-                        }
-                        break;
-                }
+        } else if (input.type === 'key') {
+            if (this.handleKeyboardShortcuts(input)) {
+                return true;
             }
         }
 
         // Pass input to children if not handled
         return super.handleInput(input);
+    }
+
+    private handleMouseInput(mouse: NormalizedMouseEvent): boolean {
+        if (mouse.action === 'press' && mouse.button !== 'left') {
+            return false;
+        }
+
+        const isInteractiveState = this.windowState !== 'closed' && this.windowState !== 'minimized';
+
+        if (mouse.action === 'press' && mouse.button === 'left' && isInteractiveState) {
+            if (this.isInCloseButton(mouse.x, mouse.y)) {
+                this.close();
+                return true;
+            }
+            if (this.isInMinimizeButton(mouse.x, mouse.y)) {
+                this.minimize();
+                return true;
+            }
+            if (this.isInMaximizeButton(mouse.x, mouse.y)) {
+                if (this.windowState === 'maximized') {
+                    this.restore();
+                } else {
+                    this.maximize();
+                }
+                return true;
+            }
+            if (this.isInResizeHandle(mouse.x, mouse.y) && this.windowOptions.resizable && this.windowState === 'normal') {
+                this.startResizing({ x: mouse.x, y: mouse.y });
+                return true;
+            }
+            if (this.isInTitleBar(mouse.x, mouse.y) && this.windowOptions.draggable && this.windowState === 'normal') {
+                this.startDragging({ x: mouse.x, y: mouse.y });
+                return true;
+            }
+        }
+
+        if (mouse.action === 'release') {
+            let handled = false;
+            if (this.isDragging) {
+                this.stopDragging();
+                handled = true;
+            }
+            if (this.isResizing) {
+                this.stopResizing();
+                handled = true;
+            }
+            return handled;
+        }
+
+        if (mouse.action === 'drag') {
+            if (this.isDragging) {
+                this.updateDragPosition({ x: mouse.x, y: mouse.y });
+                return true;
+            }
+            if (this.isResizing) {
+                this.updateResize({ x: mouse.x, y: mouse.y });
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private handleKeyboardShortcuts(input: InputEvent): boolean {
+        if (!input.alt || !input.key) {
+            return false;
+        }
+
+        const key = input.key.toLowerCase();
+        switch (key) {
+            case 'f4':
+                if (this.windowOptions.closable) {
+                    this.close();
+                    return true;
+                }
+                break;
+            case 'f9':
+                if (this.windowOptions.minimizable) {
+                    this.minimize();
+                    return true;
+                }
+                break;
+            case 'f10':
+                if (this.windowOptions.maximizable) {
+                    if (this.windowState === 'maximized') {
+                        this.restore();
+                    } else {
+                        this.maximize();
+                    }
+                    return true;
+                }
+                break;
+        }
+
+        return false;
+    }
+
+    private normalizeMouseInput(input: InputEvent): NormalizedMouseEvent | null {
+        if (input.type !== 'mouse') {
+            return null;
+        }
+
+        const raw: any = input;
+        const positionSource = raw.position || raw.mouse || {};
+        const x = typeof raw.x === 'number'
+            ? raw.x
+            : typeof positionSource.x === 'number'
+                ? positionSource.x
+                : undefined;
+        const y = typeof raw.y === 'number'
+            ? raw.y
+            : typeof positionSource.y === 'number'
+                ? positionSource.y
+                : undefined;
+
+        if (typeof x !== 'number' || typeof y !== 'number') {
+            return null;
+        }
+
+        const rawButton = raw.button ?? positionSource.button ?? raw.mouse?.button;
+        let button: 'left' | 'right' | 'middle' | undefined;
+        switch (rawButton) {
+            case 0:
+            case 'left':
+                button = 'left';
+                break;
+            case 1:
+            case 'middle':
+                button = 'middle';
+                break;
+            case 2:
+            case 'right':
+                button = 'right';
+                break;
+        }
+
+        const rawAction = raw.action ?? positionSource.action ?? raw.mouse?.action;
+        let action: 'press' | 'release' | 'drag';
+        if (rawAction === 'press' || rawAction === 'release') {
+            action = rawAction;
+        } else if (rawAction === 'move' || rawAction === 'drag') {
+            action = 'drag';
+        } else if (this.isDragging || this.isResizing) {
+            action = rawButton === undefined ? 'drag' : 'release';
+        } else {
+            action = 'press';
+        }
+
+        return { x, y, button, action };
     }
 
     /**
@@ -494,34 +624,38 @@ export class Window extends Box {
 
         const lines: string[] = [];
         const borderChars = this.themeManager.getBorderChars();
-        const theme = this.themeManager.getCurrentTheme();
         
         // Top border with title and controls
-        let topLine = this.themeManager.applyBorderColor(borderChars.topLeft);
-        
-        // Add title
-        const title = this.windowOptions.title || 'Window';
-        const titleStr = ` ${title} `;
         const controlsWidth = this.calculateControlsWidth();
-        const availableWidth = this.size.width - 2 - controlsWidth;
-        
-        // Truncate title if needed
-        let displayTitle = titleStr;
-        if (displayTitle.length > availableWidth) {
-            displayTitle = titleStr.substring(0, availableWidth - 3) + '...';
+        const innerWidth = Math.max(0, this.size.width - 2);
+        let titleAreaWidth = Math.max(0, innerWidth - controlsWidth);
+        const controls = this.renderWindowControls();
+
+        let topLine = this.themeManager.applyBorderColor(borderChars.topLeft);
+        if (titleAreaWidth > 0) {
+            topLine += this.themeManager.applyBorderColor(borderChars.horizontal);
+            titleAreaWidth -= 1;
         }
-        
-        topLine += this.themeManager.applyBorderColor(borderChars.horizontal);
-        topLine += this.themeManager.applyTypography(displayTitle, 'heading');
-        
-        // Add padding
-        const paddingWidth = availableWidth - displayTitle.length;
-        topLine += this.themeManager.applyBorderColor(borderChars.horizontal.repeat(paddingWidth));
-        
-        // Add window controls
-        topLine += this.renderWindowControls();
+
+        const rawTitle = this.windowOptions.title || 'Window';
+        let displayTitle = titleAreaWidth > 0 ? ` ${rawTitle} ` : '';
+        if (displayTitle.length > titleAreaWidth) {
+            displayTitle = titleAreaWidth > 3
+                ? displayTitle.substring(0, titleAreaWidth - 3) + '...'
+                : displayTitle.substring(0, titleAreaWidth);
+        }
+
+        if (displayTitle.length > 0) {
+            topLine += this.themeManager.applyTypography(displayTitle, 'heading');
+            titleAreaWidth -= displayTitle.length;
+        }
+
+        if (titleAreaWidth > 0) {
+            topLine += this.themeManager.applyBorderColor(borderChars.horizontal.repeat(titleAreaWidth));
+        }
+
+        topLine += controls;
         topLine += this.themeManager.applyBorderColor(borderChars.topRight);
-        
         lines.push(topLine);
         
         // Render content using Box's render, but skip the top border
@@ -553,47 +687,38 @@ export class Window extends Box {
      * Calculate controls width
      */
     private calculateControlsWidth(): number {
-        let width = 1; // Space before controls
-        
-        if (this.windowOptions.minimizable) {
-            width += 3; // [_]
+        const count = this.getControlOrder().length;
+        if (count === 0) {
+            return 0;
         }
-        if (this.windowOptions.maximizable) {
-            width += 3; // [□]
-        }
-        if (this.windowOptions.closable) {
-            width += 3; // [X]
-        }
-        
-        return width;
+        // Layout: leading space, icons separated by single spaces, trailing space
+        return (count * 2) + 1;
     }
 
     /**
      * Render window controls
      */
     private renderWindowControls(): string {
-        let controls = ' ';
-        
-        if (this.windowOptions.minimizable) {
-            controls += this.themeManager.applyColor('[', 'border');
-            controls += this.themeManager.applyColor('_', 'textPrimary');
-            controls += this.themeManager.applyColor(']', 'border');
+        const controlOrder = this.getControlOrder();
+        if (controlOrder.length === 0) {
+            return '';
         }
+
+        const borderSpace = this.themeManager.applyBorderColor(' ');
+        const icons = controlOrder.map(control => {
+            switch (control) {
+                case 'minimize':
+                    return this.themeManager.applyColor('_', 'textPrimary');
+                case 'maximize': {
+                    const icon = this.windowState === 'maximized' ? '◫' : '□';
+                    return this.themeManager.applyColor(icon, 'textPrimary');
+                }
+                case 'close':
+                    return this.themeManager.applyColor('×', 'error');
+            }
+        });
         
-        if (this.windowOptions.maximizable) {
-            controls += this.themeManager.applyColor('[', 'border');
-            const icon = this.windowState === 'maximized' ? '◱' : '□';
-            controls += this.themeManager.applyColor(icon, 'textPrimary');
-            controls += this.themeManager.applyColor(']', 'border');
-        }
-        
-        if (this.windowOptions.closable) {
-            controls += this.themeManager.applyColor('[', 'border');
-            controls += this.themeManager.applyColor('X', 'error');
-            controls += this.themeManager.applyColor(']', 'border');
-        }
-        
-        return controls;
+        return borderSpace + icons.join(borderSpace) + borderSpace;
     }
 
     /**
@@ -621,6 +746,17 @@ export class Window extends Box {
      */
     isModal(): boolean {
         return this.windowOptions.modal || false;
+    }
+
+    /**
+     * Set focused state
+     */
+    setFocused(focused: boolean): void {
+        if (focused && !this.state.focused) {
+            this.focus();
+        } else if (!focused && this.state.focused) {
+            this.blur();
+        }
     }
 
     /**
