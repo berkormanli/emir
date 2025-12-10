@@ -14,7 +14,8 @@
     "build:declaration": "tsc --emitDeclarationOnly --project tsconfig.types.json",
     "postbuild": "rimraf tsconfig.types.tsbuildinfo",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "demo:runtime": "bun examples/runtime-demo.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
