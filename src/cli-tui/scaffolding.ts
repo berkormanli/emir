@@ -7,13 +7,17 @@ import { TerminalController } from '../tui/terminal-controller';
 import { Progress } from '../tui/progress';
 import { Table } from '../tui/table';
 import { TUI } from '../tui/tui';
-import { writeFile, mkdir, readFile, existsSync } from 'fs';
-import { join, dirname, basename, extname } from 'path';
-import { promisify } from 'util';
 
-const writeFileAsync = promisify(writeFile);
-const mkdirAsync = promisify(mkdir);
-const readFileAsync = promisify(readFile);
+// Bun-compatible file operations
+const fs = require('fs');
+const path = require('path');
+const { writeFile, mkdir, readFile, existsSync } = fs;
+const { join, dirname, basename, extname } = path;
+
+// Async versions
+const writeFileAsync = fs.promises.writeFile;
+const mkdirAsync = fs.promises.mkdir;
+const readFileAsync = fs.promises.readFile;
 
 /**
  * Template types for scaffolding

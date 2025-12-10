@@ -2,10 +2,51 @@
  * Pseudo-terminal for end-to-end testing
  */
 
-import { spawn, ChildProcess } from 'child_process';
-import { EventEmitter } from 'events';
-import { createInterface, Interface } from 'readline';
-import { Writable, Readable } from 'stream';
+import { EventEmitter } from 'node:events';
+import { Writable, Readable } from 'node:stream';
+
+// Bun-compatible process spawning
+const getProcessSpawner = () => {
+    if (typeof Bun !== 'undefined') {
+        // Bun-specific implementation
+        return {
+            spawn: (command: string, args: string[]) => {
+                const proc = Bun.spawn([command, ...args]);
+                return {
+                    stdout: proc.stdout,
+                    stderr: proc.stderr,
+                    stdin: proc.stdin,
+                    pid: proc.pid,
+                    kill: (signal?: string) => proc.kill(signal || 'SIGTERM'),
+                    on: (event: string, handler: Function) => {
+                        if (event === 'exit') {
+                            proc.exited.then((code) => handler(code));
+                        }
+                    },
+                    once: (event: string, handler: Function) => {
+                        if (event === 'exit') {
+                            proc.exited.then(handler);
+                        }
+                    }
+                };
+            },
+            createInterface: () => ({
+                on: () => {},
+                close: () => {}
+            })
+        };
+    } else {
+        // Fallback to Node.js modules
+        const { spawn: nodeSpawn, ChildProcess } = require('child_process');
+        const { createInterface: nodeCreateInterface } = require('readline');
+        return {
+            spawn: nodeSpawn,
+            createInterface: nodeCreateInterface
+        };
+    }
+};
+
+const { spawn, createInterface } = getProcessSpawner();
 
 /**
  * Pseudo-terminal options
