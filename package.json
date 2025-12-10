@@ -15,7 +15,7 @@
     "postbuild": "rimraf tsconfig.types.tsbuildinfo",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:unit": "vitest run src/**/*.test.ts",
+    "test:unit": "vitest run tests/**/*.test.ts",
     "test:e2e": "bun scripts/run-e2e-tests.ts",
     "test:ci": "bun run test && bun run test:e2e",
     "test:benchmark": "vitest run tests/benchmarks/",
