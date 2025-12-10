@@ -1,4 +1,5 @@
 import { Window, WindowOptions } from './window';
+import { BaseComponent } from './base-component';
 import { Position, Size, InputEvent } from './types';
 import { AnsiUtils } from './ansi-utils';
 
@@ -131,10 +132,19 @@ export class Modal extends Window {
     }
 
     /**
+     * Get parent component (modals don't have parents)
+     */
+    getParent(): BaseComponent | null {
+        return null;
+    }
+
+    /**
      * Close the modal (same as hide)
      */
     close(): void {
         this.hide();
+        // Call parent close to set window state to 'closed'
+        super.close();
         if (this.windowOptions.onClose) {
             this.windowOptions.onClose();
         }
