@@ -1,6 +1,6 @@
 import { HybridCLI, type TUICommand } from './hybrid-cli';
 import { Command, type Option } from '../index';
-import { Form, FormData } from '../tui/form';
+import { FormData } from '../tui/form';
 import { Menu, MenuItem } from '../tui/menu';
 import { Dialog, DialogResult } from '../tui/dialog';
 import { TerminalController } from '../tui/terminal-controller';
@@ -775,39 +775,129 @@ export class CLIScaffolder {
      * Show interactive project creation wizard
      */
     async showCreateWizard(): Promise<void> {
-        const form = new Form('create-project', [
-            Form.createTextField('projectName', 'Project Name', true),
-            Form.createSelectField('projectType', 'Project Type',
-                Object.values(TemplateType).map(type => ({
-                    value: type,
-                    label: TEMPLATES[type as TemplateType].name
-                }))
-            ),
-            Form.createTextField('description', 'Description', false),
-            Form.createTextField('author', 'Author', false),
-            Form.createSelectField('license', 'License',
-                ['MIT', 'Apache-2.0', 'GPL-3.0', 'BSD-3-Clause', 'ISC'],
-                'MIT'
-            ),
-            Form.createTextField('outputPath', 'Output Path', false, process.cwd()),
-            Form.createCheckboxField('gitInit', 'Initialize Git repository?', true),
-            Form.createCheckboxField('npmInstall', 'Run npm install?', true)
-        ]);
+        // Create a simple interactive wizard using prompts
+        const answers: any = {};
 
-        const result = await form.show();
+        // Project name
+        answers.projectName = await this.prompt(
+            'Enter project name:',
+            'Project Name',
+            'my-cli-app'
+        );
 
-        if (result) {
-            await this.createProject({
-                projectType: result.projectType as TemplateType,
-                projectName: result.projectName as string,
-                description: result.description as string || 'A CLI application',
-                author: result.author as string || '',
-                license: result.license as string || 'MIT',
-                outputPath: result.outputPath as string,
-                gitInit: result.gitInit as boolean,
-                npmInstall: result.npmInstall as boolean
+        // Project type
+        const typeItems = Object.values(TemplateType).map(type => ({
+            id: type,
+            label: TEMPLATES[type as TemplateType].name,
+            description: TEMPLATES[type as TemplateType].description
+        }));
+
+        const typeSelection = await this.selectFromList(
+            'Select project type:',
+            typeItems
+        );
+        answers.projectType = typeSelection.id as TemplateType;
+
+        // Description
+        answers.description = await this.prompt(
+            'Enter description (optional):',
+            'Description',
+            'A CLI application'
+        );
+
+        // Author
+        answers.author = await this.prompt(
+            'Enter author name (optional):',
+            'Author',
+            ''
+        );
+
+        // License
+        const licenseSelection = await this.selectFromList(
+            'Select license:',
+            ['MIT', 'Apache-2.0', 'GPL-3.0', 'BSD-3-Clause', 'ISC'].map(license => ({
+                id: license,
+                label: license
+            }))
+        );
+        answers.license = licenseSelection.id as string;
+
+        // Output path
+        answers.outputPath = await this.prompt(
+            'Enter output path:',
+            'Output Path',
+            process.cwd()
+        );
+
+        // Initialize Git
+        answers.gitInit = await this.confirm(
+            'Initialize Git repository?',
+            'Git Initialization'
+        );
+
+        // Run npm install
+        answers.npmInstall = await this.confirm(
+            'Run npm install after creating project?',
+            'Dependencies'
+        );
+
+        await this.createProject({
+            projectType: answers.projectType,
+            projectName: answers.projectName,
+            description: answers.description,
+            author: answers.author,
+            license: answers.license,
+            outputPath: answers.outputPath,
+            gitInit: answers.gitInit,
+            npmInstall: answers.npmInstall
+        });
+    }
+
+    /**
+     * Simple prompt implementation
+     */
+    private async prompt(message: string, title: string = 'Input', defaultValue?: string): Promise<string> {
+        const dialog = new Dialog('prompt-dialog', {
+            type: 'prompt',
+            title,
+            message,
+            inputDefaultValue: defaultValue,
+            buttons: 'ok-cancel'
+        });
+
+        const tui = new TUI('prompt', '1.0.0', 'Prompt');
+        tui.addComponent(dialog);
+
+        return new Promise((resolve) => {
+            dialog.setOnResult((result: DialogResult) => {
+                resolve(result.buttonId === 'ok' ? result.inputValue || defaultValue || '' : defaultValue || '');
+                tui.stop();
             });
-        }
+
+            tui.start();
+        });
+    }
+
+    /**
+     * Select from list implementation
+     */
+    private async selectFromList(message: string, items: any[]): Promise<any> {
+        const menu = new Menu('select-menu', items, {
+            title: message,
+            showBorder: true
+        });
+
+        const tui = new TUI('select', '1.0.0', 'Select');
+        tui.addComponent(menu);
+
+        return new Promise((resolve) => {
+            menu.setOnSelect((item) => {
+                resolve(item);
+                tui.stop();
+            });
+
+            tui.start();
+        });
     }
 
     /**

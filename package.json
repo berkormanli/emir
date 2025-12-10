@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "build": "bun build --target=node ./src/index.ts --outfile=dist/index.js && bun run build:declaration",
-    "build:declaration": "tsc --emitDeclarationOnly --project tsconfig.types.json",
+    "build:declaration": "npx tsc --emitDeclarationOnly --project tsconfig.types.json",
     "postbuild": "rimraf tsconfig.types.tsbuildinfo",
     "test": "vitest run",
     "test:watch": "vitest",

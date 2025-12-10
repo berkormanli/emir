@@ -181,6 +181,41 @@ describe('Theme System', () => {
                             strikethrough: false,
                             dim: false,
                             transform: 'capitalize'
+                        },
+                        heading: {
+                            bold: true,
+                            italic: false,
+                            underline: false,
+                            strikethrough: false,
+                            dim: false
+                        },
+                        label: {
+                            bold: false,
+                            italic: false,
+                            underline: false,
+                            strikethrough: false,
+                            dim: true
+                        },
+                        button: {
+                            bold: true,
+                            italic: false,
+                            underline: false,
+                            strikethrough: false,
+                            dim: false
+                        },
+                        input: {
+                            bold: false,
+                            italic: false,
+                            underline: false,
+                            strikethrough: false,
+                            dim: false
+                        },
+                        error: {
+                            bold: true,
+                            italic: false,
+                            underline: false,
+                            strikethrough: false,
+                            dim: false
                         }
                     }
                 }
