@@ -3,16 +3,12 @@
   "version": "0.0.1",
   "description": "A small, lightweight CLI building library written for Bun, with Bun.",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "type": "module",
   "files": [
-    "dist/*.js",
-    "dist/*.d.ts"
+    "dist/*.js"
   ],
   "scripts": {
     "build": "bun build --target=bun ./src/index.ts --outfile=dist/index.js",
-    "build:declaration": "npx tsc --emitDeclarationOnly --project tsconfig.types.json",
-    "postbuild": "rimraf tsconfig.types.tsbuildinfo",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run tests/**/*.test.ts",
@@ -31,8 +27,5 @@
     "rimraf": "^6.0.1",
     "typedoc": "^0.26.0",
     "vitest": "^1.0.0"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
   }
 }
