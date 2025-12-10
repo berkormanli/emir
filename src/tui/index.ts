@@ -29,4 +29,38 @@ export { BarChart, type BarChartOptions, type BarOrientation, type BarStyle } fr
 export { LineChart, type LineChartOptions, type LineInterpolation, type LineStyle, type PointMarker } from './line-chart';
 export { Sparkline, type SparklineOptions, type SparklineStyle } from './sparkline';
 export { Table, type TableOptions, type TableColumn, type TableBorderStyle, type SortDirection } from './table';
+
+// New rendering and layout engine exports
+export {
+    RenderEngine,
+    RenderBuffer,
+    FrameThrottler,
+    type DirtyRegion
+} from './render-engine';
+export {
+    AdvancedContainer,
+    type LayoutConstraints,
+    type ChildLayoutProps,
+    type LayoutDirection,
+    type AlignItems as ContainerAlignItems,
+    type JustifyContent as ContainerJustifyContent,
+    type WrapMode
+} from './advanced-container';
+export {
+    EnhancedWindowManager,
+    type SnapZones,
+    type TilingLayout,
+    type SnapRegion,
+    type EnhancedManagedWindow
+} from './enhanced-window-manager';
+export {
+    VirtualizedRenderer,
+    VirtualizedList,
+    VirtualizedTable,
+    VirtualizedLog,
+    type VirtualItem,
+    type ColumnDefinition,
+    type VirtualRendererOptions,
+    type LogEntry
+} from './virtualized-renderer';
 export * from './types';
