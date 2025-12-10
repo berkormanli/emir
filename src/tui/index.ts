@@ -58,4 +58,37 @@ export type {
     RuntimeCoreConfig
 } from './input-types';
 
+// New rendering and layout engine exports
+export {
+    RenderEngine,
+    RenderBuffer,
+    FrameThrottler,
+    type DirtyRegion
+} from './render-engine';
+export {
+    AdvancedContainer,
+    type LayoutConstraints,
+    type ChildLayoutProps,
+    type LayoutDirection,
+    type AlignItems as ContainerAlignItems,
+    type JustifyContent as ContainerJustifyContent,
+    type WrapMode
+} from './advanced-container';
+export {
+    EnhancedWindowManager,
+    type SnapZones,
+    type TilingLayout,
+    type SnapRegion,
+    type EnhancedManagedWindow
+} from './enhanced-window-manager';
+export {
+    VirtualizedRenderer,
+    VirtualizedList,
+    VirtualizedTable,
+    VirtualizedLog,
+    type VirtualItem,
+    type ColumnDefinition,
+    type VirtualRendererOptions,
+    type LogEntry
+} from './virtualized-renderer';
 export * from './types';
