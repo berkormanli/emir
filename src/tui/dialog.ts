@@ -74,24 +74,27 @@ export class Dialog extends Modal {
         options: DialogOptions,
         size?: Size
     ) {
-        // Set up modal options
-        const modalOptions: ModalOptions = {
-            ...options,
-            title: options.title || Dialog.getDefaultTitle(options.type),
-            closable: false, // Use dialog buttons instead
-            escapeToClose: false // Will be handled by dialog
-        };
-        
-        // Calculate appropriate size based on content
-        const dialogSize = size || Dialog.calculateDialogSize(options);
-        
-        super(id, modalOptions, dialogSize);
-        
-        this.dialogOptions = {
+        // Merge options with defaults first to ensure type is set
+        const mergedOptions: DialogOptions = {
             type: 'alert',
             buttons: 'ok',
             ...options
         };
+
+        // Set up modal options with merged options
+        const modalOptions: ModalOptions = {
+            ...mergedOptions,
+            title: mergedOptions.title || Dialog.getDefaultTitle(mergedOptions.type),
+            closable: false, // Use dialog buttons instead
+            escapeToClose: false // Will be handled by dialog
+        };
+
+        // Calculate appropriate size based on content
+        const dialogSize = size || Dialog.calculateDialogSize(mergedOptions);
+
+        super(id, modalOptions, dialogSize);
+
+        this.dialogOptions = mergedOptions;
         
         this.dialogButtons = this.createButtons();
         this.selectedButtonIndex = this.findDefaultButtonIndex();

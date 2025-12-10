@@ -77,10 +77,10 @@ export abstract class Chart extends BaseComponent {
             symbols: options.symbols || ['●', '■', '▲', '◆', '★', '♦', '♠'],
             border: options.border ?? false
         };
-        
-        this.chartArea = this.calculateChartArea();
+
         this.scale = this.calculateScale();
         this.series = this.groupBySeries();
+        this.chartArea = this.calculateChartArea();
     }
 
     /**

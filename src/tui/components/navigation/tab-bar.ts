@@ -1,7 +1,7 @@
 import { BaseComponent } from '../../base-component';
 import { InputEvent, Position, Size } from '../../types';
 import { ThemeManager } from '../../theme';
-import { AnsiUtils } from '../../utils/ansi-utils';
+import { AnsiUtils } from '../ansi-utils';
 
 export interface Tab {
     id: string;

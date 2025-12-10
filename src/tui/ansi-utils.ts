@@ -74,18 +74,24 @@ export class AnsiUtils {
 
     // Colors (16-color support)
     static setForegroundColor(color: number): string {
-        if (color >= 0 && color <= 7) {
+        if (typeof color !== 'number' || color < 0) {
+            return '';
+        }
+        if (color <= 7) {
             return `\x1b[3${color}m`;
-        } else if (color >= 8 && color <= 15) {
+        } else if (color <= 15) {
             return `\x1b[9${color - 8}m`;
         }
         return '';
     }
 
     static setBackgroundColor(color: number): string {
-        if (color >= 0 && color <= 7) {
+        if (typeof color !== 'number' || color < 0) {
+            return '';
+        }
+        if (color <= 7) {
             return `\x1b[4${color}m`;
-        } else if (color >= 8 && color <= 15) {
+        } else if (color <= 15) {
             return `\x1b[10${color - 8}m`;
         }
         return '';
@@ -93,17 +99,17 @@ export class AnsiUtils {
 
     // 256-color support
     static setForegroundColor256(color: number): string {
-        if (color >= 0 && color <= 255) {
-            return `\x1b[38;5;${color}m`;
+        if (typeof color !== 'number' || color < 0 || color > 255) {
+            return '';
         }
-        return '';
+        return `\x1b[38;5;${color}m`;
     }
 
     static setBackgroundColor256(color: number): string {
-        if (color >= 0 && color <= 255) {
-            return `\x1b[48;5;${color}m`;
+        if (typeof color !== 'number' || color < 0 || color > 255) {
+            return '';
         }
-        return '';
+        return `\x1b[48;5;${color}m`;
     }
 
     // RGB color support (24-bit)

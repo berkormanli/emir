@@ -1,4 +1,5 @@
 import { Window, WindowOptions } from './window';
+import { BaseComponent } from './base-component';
 import { Position, Size, InputEvent } from './types';
 import { AnsiUtils } from './ansi-utils';
 
@@ -20,7 +21,7 @@ export interface ModalOptions extends Omit<WindowOptions, 'draggable' | 'resizab
 export class Modal extends Window {
     protected modalOptions: ModalOptions;
     private screenSize: Size;
-    private isShown: boolean;
+    private _isShown: boolean;
 
     constructor(
         id: string,
@@ -56,7 +57,7 @@ export class Modal extends Window {
         };
         
         this.screenSize = screenSize;
-        this.isShown = false;
+        this._isShown = false;
     }
 
     /**
@@ -89,8 +90,8 @@ export class Modal extends Window {
      * Show the modal
      */
     show(): void {
-        if (!this.isShown) {
-            this.isShown = true;
+        if (!this._isShown) {
+            this._isShown = true;
             this.setVisible(true);
             this.centerModal();
             this.focus();
@@ -105,8 +106,8 @@ export class Modal extends Window {
      * Hide the modal
      */
     hide(): void {
-        if (this.isShown) {
-            this.isShown = false;
+        if (this._isShown) {
+            this._isShown = false;
             this.setVisible(false);
             this.blur();
             
@@ -120,7 +121,21 @@ export class Modal extends Window {
      * Check if modal is shown
      */
     isModalShown(): boolean {
-        return this.isShown;
+        return this._isShown;
+    }
+
+    /**
+     * Check if modal is shown (alias for isModalShown)
+     */
+    isShown(): boolean {
+        return this.isModalShown();
+    }
+
+    /**
+     * Get parent component (modals don't have parents)
+     */
+    getParent(): BaseComponent | null {
+        return null;
     }
 
     /**
@@ -128,6 +143,8 @@ export class Modal extends Window {
      */
     close(): void {
         this.hide();
+        // Call parent close to set window state to 'closed'
+        super.close();
         if (this.windowOptions.onClose) {
             this.windowOptions.onClose();
         }
@@ -161,7 +178,7 @@ export class Modal extends Window {
      * Render the modal with overlay
      */
     render(): string {
-        if (!this.isShown || !this.visible) {
+        if (!this._isShown || !this.visible) {
             return '';
         }
 
@@ -254,7 +271,7 @@ export class Modal extends Window {
      * Render the modal at a specific position on the overlay
      */
     renderAtPosition(baseCanvas: string[]): string[] {
-        if (!this.isShown || !this.visible) {
+        if (!this._isShown || !this.visible) {
             return baseCanvas;
         }
 

@@ -3,27 +3,29 @@
   "version": "0.0.1",
   "description": "A small, lightweight CLI building library written for Bun, with Bun.",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "type": "module",
   "files": [
-    "dist/*.js",
-    "dist/*.d.ts"
+    "dist/*.js"
   ],
   "scripts": {
-    "build": "bun build --target=node ./src/index.ts --outfile=dist/index.js && bun run build:declaration",
-    "build:declaration": "tsc --emitDeclarationOnly --project tsconfig.types.json",
-    "postbuild": "rimraf tsconfig.types.tsbuildinfo",
+    "build": "bun build --target=bun ./src/index.ts --outfile=dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "demo:runtime": "bun examples/runtime-demo.ts"
+    "test:unit": "vitest run tests/**/*.test.ts",
+    "test:e2e": "bun scripts/run-e2e-tests.ts",
+    "test:ci": "bun run test && bun run test:e2e",
+    "test:benchmark": "vitest run tests/benchmarks/",
+    "demo:runtime": "bun examples/runtime-demo.ts",
+    "docs:build": "typedoc && bun run docs:generate-examples",
+    "docs:generate-examples": "bun scripts/generate-examples.ts",
+    "docs:serve": "bun --watch src/index.ts",
+    "docs:dev": "bun run docs:build && npx http-server docs -p 8080"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "^20.0.0",
     "rimraf": "^6.0.1",
+    "typedoc": "^0.26.0",
     "vitest": "^1.0.0"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
   }
 }

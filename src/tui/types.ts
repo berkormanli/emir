@@ -47,6 +47,9 @@ export interface InputEvent {
     ctrl?: boolean;
     alt?: boolean;
     shift?: boolean;
+    position?: Position;
+    button?: number | 'left' | 'right' | 'middle';
+    action?: 'press' | 'release' | 'move' | 'drag';
     mouse?: MouseEvent;
 }
 
@@ -54,7 +57,7 @@ export interface MouseEvent {
     x: number;
     y: number;
     button: 'left' | 'right' | 'middle';
-    action: 'press' | 'release' | 'move';
+    action: 'press' | 'release' | 'move' | 'drag';
 }
 
 export interface Component {
